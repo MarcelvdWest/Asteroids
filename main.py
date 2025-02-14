@@ -8,6 +8,9 @@ from constants import (
     ASTEROID_MAX_RADIUS
 )
 from player import Player
+from asteroid import Asteroid
+from asteroid_field import AsteroidField
+from shot import Shot
 
 
 def main():
@@ -18,23 +21,55 @@ def main():
 
     pygame.init()
 
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    clock = pygame.time.Clock()
-    dt = 0
+    updatable = pygame.sprite.Group()
+    drawable = pygame.sprite.Group()
+    asteroids = pygame.sprite.Group()
+    shots = pygame.sprite.Group()
+
+    Asteroid.containers = (asteroids, updatable, drawable)
+    AsteroidField.containers = (updatable)
+
+    asteroid_field = AsteroidField()
+
+    Player.containers = (updatable, drawable)
     player = Player(SCREEN_WIDTH/2, SCREEN_HEIGHT/2)
 
-    while True:
+    Shot.containers = (shots, updatable, drawable)
+
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    clock = pygame.time.Clock()
+
+    dt = 0
+    game_active = True
+
+    while game_active:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
 
-        dt = clock.tick(60)
+        dt = clock.tick(60) / 1000
         # player = Player(SCREEN_WIDTH/2, SCREEN_HEIGHT/2)
-        
+
         screen.fill("black")
 
-        player.update(dt)
-        player.draw(screen)
+        updatable.update(dt)
+
+        for asteroid in asteroids:
+            player_did_collide = asteroid.collision_check(player)
+
+            for shot in shots:
+                shot_did_collide = asteroid.collision_check(shot)
+
+                if shot_did_collide:
+                    asteroid.split()
+                    shot.kill()
+
+            if player_did_collide:
+                print("Game over!")
+                game_active = False
+
+        for unit in drawable:
+            unit.draw(screen)
 
         pygame.display.flip()
 
